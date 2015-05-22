@@ -13,9 +13,10 @@ $(function(){
     // size variables
     var imgWidth = canvas.width;
     var imgHeight = canvas.height;
-    var pixelSize = 40;
+    var pixelSize = 10;
 
     var json, parsed, dataArray;
+    var jsonUrl = "ben-test.json";
 
     // single pixel object
     var animationPixel = function(){
@@ -24,7 +25,7 @@ $(function(){
         this.endX = 0;
         this.endY = 0;
         this.currentX = 0;
-        this.currentY = 0;
+        this.currentY = -pixelSize;
         this.color = "#000000";
     }
 
@@ -32,22 +33,51 @@ $(function(){
     var pixels = [];
 
     // animation variables
-    var speed = 5;
+    var speed = 10;
 
     function loadJson(){
-        json = '{"0": {"0":"#d7f3ff","1":"#d0eaf7","2":"#d3ebf7","3":"#d5ebf6","4":"#d2e5e1"},"1": {"0":"#d5f1fd","1":"#dcf4ff","2":"#b7e5f4","3":"#b5f1f9","4":"#cee1e8"},"2": {"0":"#d7f1fe","1":"#b2f1fa","2":"#c3f5fc","3":"#2b2e59","4":"#cae2e6"},"3": {"0":"#d2ecfb","1":"#a8ecf7","2":"#b1effc","3":"#d5cac6","4":"#d2e9f7"},"4": {"0":"#cadffe","1":"#76dbf7","2":"#80d1ee","3":"#96b6f1","4":"#afb8c1"}}';
+        console.log( "loading" );
 
-        parsed = JSON.parse(json);
-        console.log(parsed);
+        json = $.getJSON( jsonUrl, function() {
+
+            console.log( "success" );
+
+        }).done(function() {
+            console.log( "done" );
+
+
+            jsonString = JSON.stringify(json);
+            jsonObj = JSON.parse(jsonString);
+
+
+
+            jsonArray = $.map(jsonObj.responseJSON ,function(value){
+                return value;
+            })
+
+            console.log(jsonArray);
+
+            // create pixel array
+            createObjArray(jsonArray);
+
+        }).fail(function(jqxhr, textStatus, error ) {
+
+            var err = textStatus + ", " + error;
+            console.log( "Request Failed: " + err );
+
+        });
     }
-
+    // trigger load json
     loadJson();
 
-    function createObjArray(){
+    // create pixel array
+    function createObjArray(jsonArray){
+
         y = 0;
-        while (parsed[y]) {
+        while (jsonArray[y]) {
+
             x = 0;
-            while (parsed[y][x]) {
+            while (jsonArray[y][x]) {
 
                 var pixel = new animationPixel;
 
@@ -58,7 +88,7 @@ $(function(){
                 // set pixel end destination
                 pixel.endX =  x*pixelSize;
                 pixel.endY =  y*pixelSize;
-                pixel.color = parsed[y][x];
+                pixel.color = jsonArray[y][x];
 
                 // add pixel to pixels array
                 pixels.push(pixel);
@@ -67,28 +97,58 @@ $(function(){
             }
             y++;
         }
+        console.log(pixels);
+
+        canvas.width = x*pixelSize;
+        canvas.height = y*pixelSize;
+
+        // start animation
+        animloop();
     }
-    createObjArray();
 
-    console.log(pixels);
 
-    // usage:
-    // instead of setInterval(render, 16) ....
-
+    // animation loop
+    var dt;
+    var lastUpdate = Date.now();
+    var newMove = true;
     function animloop(){
+        var now = Date.now();
+        dt = now - lastUpdate;
+        lastUpdate = now;
+
         requestAnimFrame(animloop);
-        moveRandomPixel();
+
+        if(newMove){
+            moveRandomPixel();
+        }
+
         render();
     };
 
 
+
+    function easeInQuad (t, b, c, d){
+        t /= d;
+        t--;
+        return -c * (t*t*t*t - 1) + b;
+    }
+
+    var currentPixel = 0;
+    var rand = 0;
+    var iteration = 0
     function moveRandomPixel(){
-        rand = Math.floor(Math.random()*pixels.length);
 
         // run again if pixel at end
-        if(pixels[rand].currentX == pixels[rand].endX && pixels[rand].currentY == pixels[rand].endY){
+        if(pixels[rand].currentY >= pixels[rand].endY){
+
+            // get random pixel
+            rand = Math.floor(Math.random()*pixels.length);
+
             moveRandomPixel();
         }
+        console.log(dt);
+
+        // pixels[rand].currentY += easeInQuad(dt, speed, pixels[rand].endY, 1000);
 
         // move in the X
         if(pixels[rand].currentX < pixels[rand].endX){
@@ -97,17 +157,17 @@ $(function(){
 
         }else if(pixels[rand].currentX > pixels[rand].endX){
 
-            pixels[rand].currentX += speed;
+            pixels[rand].currentX -= speed;
 
         }
-        // move in the y
+        // // move in the y
         if(pixels[rand].currentY < pixels[rand].endY){
 
             pixels[rand].currentY += speed;
 
         }else if(pixels[rand].currentY > pixels[rand].endY){
 
-            pixels[rand].currentY += speed;
+            pixels[rand].currentY -= speed;
 
         }
     }
@@ -125,8 +185,5 @@ $(function(){
 
         }
     }
-
-    // start animation
-    animloop();
 
 });
