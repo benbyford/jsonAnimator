@@ -120,6 +120,8 @@ $(function(){
 
         if(newMove){
             moveRandomPixel();
+            moveRandomPixel();
+            moveRandomPixel();
         }
 
         render();
